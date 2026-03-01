@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>nMOSFET Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700&display=swap');
+:root{--bg:#0a0e1a;--border:#1e2d50;--accent:#00d4ff;--accent2:#ff6b35;--accent3:#39ff14;--text:#c8d8f0;--dim:#5a7099;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;font-weight:300;
+  height:100vh;overflow:hidden;
+  background-image:linear-gradient(rgba(0,212,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.04) 1px,transparent 1px);
+  background-size:40px 40px;}
+#hdr{position:fixed;top:0;left:0;right:0;height:50px;background:rgba(10,14,26,0.96);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 20px;z-index:100;}
+.chip{width:32px;height:32px;border:2px solid var(--accent);border-radius:4px;display:flex;
+  align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:9px;
+  color:var(--accent);box-shadow:0 0 10px rgba(0,212,255,0.3);}
+#hdr h1{font-size:1.15rem;font-weight:700;letter-spacing:2px;color:var(--accent);text-shadow:0 0 18px rgba(0,212,255,0.4);}
+#hdr span{font-size:0.72rem;color:var(--dim);letter-spacing:1px;}
+#sb{position:fixed;top:50px;left:0;bottom:0;width:268px;
+  background:rgba(12,18,35,0.95);border-right:1px solid var(--border);overflow-y:auto;padding:14px 13px;}
+.st{font-size:0.59rem;font-weight:700;letter-spacing:3px;color:var(--accent);text-transform:uppercase;
+  margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.pr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:5px;}
+.pl{font-family:'Share Tech Mono',monospace;font-size:0.71rem;color:var(--text);min-width:76px;}
+.pu{font-size:0.59rem;color:var(--dim);min-width:38px;text-align:right;}
+input[type=number]{background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:3px;
+  color:var(--accent3);font-family:'Share Tech Mono',monospace;font-size:0.77rem;padding:3px 6px;width:66px;text-align:right;}
+input[type=number]:focus{outline:none;border-color:var(--accent);}
+.sep{height:1px;background:var(--border);margin:11px 0;}
+.sv{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent2);text-shadow:0 0 8px rgba(255,107,53,0.5);}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+  background:var(--accent2);border-radius:50%;box-shadow:0 0 8px rgba(255,107,53,0.6);}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:0.63rem;font-weight:600;letter-spacing:1px;margin-top:4px;}
+.off{background:rgba(90,112,153,0.2);color:var(--dim);border:1px solid var(--dim);}
+.linear{background:rgba(57,255,20,0.12);color:var(--accent3);border:1px solid var(--accent3);}
+.saturation{background:rgba(255,107,53,0.15);color:var(--accent2);border:1px solid var(--accent2);}
+.idbox{background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:5px;padding:9px;margin-top:5px;}
+.idbox label{font-size:0.58rem;letter-spacing:2px;color:var(--dim);}
+.idval{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent);}
+.inf{margin-top:7px;font-size:0.66rem;color:var(--dim);line-height:2;}
+.inf .g{color:var(--accent3);font-family:'Share Tech Mono',monospace;}
+.inf .o{color:#ff9955;font-family:'Share Tech Mono',monospace;}
+#main{position:fixed;top:50px;left:268px;right:0;bottom:0;display:flex;flex-direction:column;}
+#cw{height:215px;flex-shrink:0;border-bottom:1px solid var(--border);padding:6px 14px 2px;background:rgba(8,12,26,0.6);overflow:hidden;}
+#cw h3{font-size:0.59rem;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:3px;}
+#gw{flex:1;padding:8px 16px 6px;overflow:hidden;}
+#gw h3{font-size:0.59rem;letter-spacing:2px;color:var(--accent);text-transform:uppercase;margin-bottom:3px;}
+canvas{display:block;}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div class="chip">MOS</div>
+  <h1>nMOSFET SIMULATOR</h1>
+  <span>短通道效應 · 速度飽和 · DIBL · CLM · Pinch-off</span>
+</div>
+<div id="sb">
+  <div style="margin-bottom:14px;">
+    <div class="st">通道長度 L</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <span style="font-size:0.63rem;color:var(--dim)">50 nm → 1 µm</span>
+      <span class="sv" id="lVal">250 nm</span>
+    </div>
+    <input type="range" id="sliderL" min="50" max="1000" value="250" step="10">
+  </div>
+  <div class="sep"></div>
+  <div style="margin-bottom:13px;">
+    <div class="st">偏壓設定</div>
+    <div class="pr"><span class="pl">Vg</span><input type="number" id="vg" value="1.0" step="0.1" min="0" max="3"><span class="pu">V</span></div>
+    <div class="pr"><span class="pl">Vd</span><input type="number" id="vd" value="0.8" step="0.1" min="0" max="3"><span class="pu">V</span></div>
+    <div class="pr"><span class="pl">Vth₀</span><input type="number" id="vth" value="0.4" step="0.05" min="0" max="2"><span class="pu">V</span></div>
+  </div>
+  <div class="sep"></div>
+  <div style="margin-bottom:13px;">
+    <div class="st">固定參數</div>
+    <div class="pr"><span class="pl">μn</span><input type="number" id="mu" value="400" step="10" min="50" max="1000"><span class="pu">cm²/Vs</span></div>
+    <div class="pr"><span class="pl">Cox</span><input type="number" id="cox" value="15" step="1" min="1" max="50"><span class="pu">fF/µm²</span></div>
+    <div class="pr"><span class="pl">W</span><input type="number" id="width" value="1.0" step="0.1" min="0.1" max="10"><span class="pu">µm</span></div>
+    <div class="pr"><span class="pl">λ</span><input type="number" id="lambda" value="0.1" step="0.01" min="0" max="0.5"><span class="pu">V⁻¹</span></div>
+    <div class="pr"><span class="pl">η (DIBL)</span><input type="number" id="eta" value="0.05" step="0.01" min="0" max="0.3"><span class="pu">—</span></div>
+    <div class="pr"><span class="pl">Esat</span><input type="number" id="esat" value="4.0" step="0.5" min="1" max="20"><span class="pu">V/µm</span></div>
+  </div>
+  <div class="sep"></div>
+  <div class="st">工作點</div>
+  <div id="regimeBadge" class="badge off">OFF</div>
+  <div class="idbox"><label>ID (工作點)</label><br><span class="idval" id="idPoint">0.000 µA</span></div>
+  <div class="inf">
+    <div>Vth_eff = <span class="g" id="vthEff">—</span> V</div>
+    <div>Vdsat &nbsp;= <span class="g" id="vdsat">—</span> V</div>
+    <div>η_eff &nbsp;&nbsp;= <span class="o" id="etaEff">—</span></div>
+    <div>λ_eff &nbsp;&nbsp;= <span class="o" id="lamEff">—</span> V⁻¹</div>
+  </div>
+</div>
+<div id="main">
+  <div id="cw"><h3>MOSFET 橫截面示意圖</h3><canvas id="cc"></canvas></div>
+  <div id="gw"><h3>Id – Vd 曲線（各 Vg）</h3><canvas id="gc"></canvas></div>
+</div>
+<script>
+const UNIT=1e-11, L0=0.25;
+
+function gp(){
+  return{L:parseFloat(document.getElementById('sliderL').value)/1000,
+    Vth0:parseFloat(document.getElementById('vth').value),
+    mu:parseFloat(document.getElementById('mu').value),
+    Cox:parseFloat(document.getElementById('cox').value),
+    W:parseFloat(document.getElementById('width').value),
+    lambda:parseFloat(document.getElementById('lambda').value),
+    eta:parseFloat(document.getElementById('eta').value),
+    Esat:parseFloat(document.getElementById('esat').value)};
+}
+
+function calcId(Vgs,Vds,p){
+  const ea=p.eta*(L0/p.L), la=p.lambda*(L0/p.L);
+  const Vte=p.Vth0-ea*Vds, Vov=Vgs-Vte;
+  if(Vov<=0) return{Id:0,regime:'off',Vth_eff:Vte,Vdsat:0};
+  const EL=p.Esat*p.L, Vd2=(Vov*EL)/(Vov+EL);
+  const beta=(p.W/p.L)*p.mu*p.Cox;
+  if(Vds<Vd2) return{Id:beta*Vov*Vds/(1+Vds/EL),regime:'linear',Vth_eff:Vte,Vdsat:Vd2};
+  return{Id:beta*Vov*Vd2/(1+Vd2/EL)*(1+la*Vds),regime:'saturation',Vth_eff:Vte,Vdsat:Vd2};
+}
+
+// ═══════════════════════════════════════════════
+// Cross-section
+// ═══════════════════════════════════════════════
+function drawCross(canvas,p,Vg,Vd){
+  const CW=canvas.width, CH=canvas.height;
+  if(CW<10||CH<10) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,CW,CH);
+
+  const{Vth_eff,Vdsat,regime}=calcId(Vg,Vd,p);
+  const isOn=regime!=='off', isSat=regime==='saturation';
+  const L_nm=Math.round(p.L*1000);
+  const Vov=Math.max(Vg-Vth_eff,0);
+
+  // Pinch-off fraction: how much of channel has inversion (from Source side)
+  // At Vds=Vdsat: pinch-off just touches Drain → full channel length
+  // As Vds > Vdsat: pinch-off moves toward Source → shorter effective channel
+  const chFrac = isSat
+    ? Math.min(0.99, Math.max(0.06, Vdsat / Math.max(Vd, 0.001)))
+    : 1.0;
+
+  // ── Layout ─────────────────────────────────
+  const ML=24, MR=24, MT=26, MB=28;
+  const DW=CW-ML-MR, DH=CH-MT-MB;
+
+  // S/D take ~22% each side, channel is middle ~56%
+  const sdW = DW*0.22;
+  const chW = DW*0.56;
+  const sX=ML, cX=ML+sdW, dX=cX+chW;
+
+  // Vertical
+  const subY=MT, subH=DH*0.72;
+  const subBot=subY+subH;
+  const nH=Math.round(subH*0.52);  // n+ diffusion depth
+
+  // Gate stack sits on top of substrate surface
+  const oxH=10, gateH=15;
+  const oxY=subY-oxH, gateY=oxY-gateH;
+
+  // Channel max thickness (at source side)
+  const invMax=Math.round(nH*0.65);
+
+  // ── Substrate (light blue, like reference) ──
+  ctx.fillStyle='#b8d8e8';
+  ctx.fillRect(ML,subY,DW,subH);
+  ctx.strokeStyle='#7aaabb';ctx.lineWidth=1;
+  ctx.strokeRect(ML,subY,DW,subH);
+
+  // substrate label
+  ctx.fillStyle='#3a6878';ctx.font='bold 10px "Exo 2"';ctx.textAlign='center';
+  ctx.fillText('p-type substrate',ML+DW/2,subBot-6);
+
+  // ── N+ Source & Drain (rounded, dug into substrate) ──
+  function drawSD(x,w,lbl,align){
+    // metal contact above
+    ctx.fillStyle='#555';
+    ctx.fillRect(x+w*0.1,gateY-6,w*0.8,subY-gateY+10);
+    ctx.strokeStyle='#444';ctx.lineWidth=1;
+    ctx.strokeRect(x+w*0.1,gateY-6,w*0.8,subY-gateY+10);
+
+    // n+ diffusion: rounded bottom
+    ctx.beginPath();
+    const r=8;
+    ctx.moveTo(x,subY);
+    ctx.lineTo(x+w,subY);
+    ctx.lineTo(x+w,subY+nH-r);
+    ctx.quadraticCurveTo(x+w,subY+nH,x+w-r,subY+nH);
+    ctx.lineTo(x+r,subY+nH);
+    ctx.quadraticCurveTo(x,subY+nH,x,subY+nH-r);
+    ctx.closePath();
+    ctx.fillStyle='#8aabbf';ctx.fill();
+    ctx.strokeStyle='#4a7a90';ctx.lineWidth=1.5;ctx.stroke();
+
+    // label outside
+    ctx.fillStyle='#223344';ctx.font='bold 11px "Exo 2"';ctx.textAlign=align;
+    const lx = align==='right' ? x-6 : x+w+6;
+    ctx.fillText(lbl,lx,subY+nH*0.5+4);
+  }
+  drawSD(sX, sdW, 'source', 'right');
+  drawSD(dX, sdW, 'drain',  'left');
+
+  // ── Gate Oxide (gray-green, only over channel) ──
+  ctx.fillStyle='#9aaa88';
+  ctx.fillRect(cX,oxY,chW,oxH);
+  ctx.strokeStyle='#6a7a58';ctx.lineWidth=1;
+  ctx.strokeRect(cX,oxY,chW,oxH);
+  if(chW>60){
+    ctx.fillStyle='#223322';ctx.font='9px "Exo 2"';ctx.textAlign='center';
+    ctx.fillText('oxide',cX+chW/2,oxY+oxH/2+3);
+  }
+
+  // ── Gate metal (dark bar, only over channel) ──
+  ctx.fillStyle='#555';
+  ctx.fillRect(cX,gateY,chW,gateH);
+  ctx.strokeStyle='#333';ctx.lineWidth=1;
+  ctx.strokeRect(cX,gateY,chW,gateH);
+
+  // ── Orange channel triangle ─────────────────
+  if(isOn){
+    const hS = invMax;  // thickness at Source end (full)
+
+    if(!isSat){
+      // LINEAR: tapered trapezoid touching both S and D
+      // Drain side thickness = hS * (Vov - Vds) / Vov  (thinner as Vds increases)
+      const hD = Math.max(2, hS * Math.max(0, 1 - Vd/Math.max(Vov,0.01)));
+      ctx.beginPath();
+      ctx.moveTo(cX,        subY);
+      ctx.lineTo(cX+chW,    subY);
+      ctx.lineTo(cX+chW,    subY+hD);
+      ctx.lineTo(cX,        subY+hS);
+      ctx.closePath();
+      ctx.fillStyle='rgba(220,90,20,0.88)';ctx.fill();
+      ctx.strokeStyle='#aa2200';ctx.lineWidth=2;ctx.stroke();
+
+      if(chW>70){
+        ctx.fillStyle='rgba(255,240,220,0.9)';ctx.font='bold 13px "Exo 2"';ctx.textAlign='center';
+        ctx.fillText('channel',cX+chW/2,subY+(hS+hD)/4+5);
+      }
+
+    } else {
+      // SATURATION: triangle, tip = pinch-off point, does NOT reach Drain
+      const invW   = chW * chFrac;
+      const pinchX = cX + invW;
+
+      // Triangle: left edge full hS, tapers to point at pinchX
+      ctx.beginPath();
+      ctx.moveTo(cX,     subY);
+      ctx.lineTo(pinchX, subY);        // top edge goes to pinch-off x
+      ctx.lineTo(cX,     subY+hS);     // bottom-left full thickness
+      ctx.closePath();
+      ctx.fillStyle='rgba(220,90,20,0.88)';ctx.fill();
+      ctx.strokeStyle='#aa2200';ctx.lineWidth=2;ctx.stroke();
+
+      // "channel" label inside triangle if space allows
+      if(invW>70){
+        ctx.fillStyle='rgba(255,240,220,0.9)';ctx.font='bold 13px "Exo 2"';ctx.textAlign='center';
+        ctx.fillText('channel',cX+invW*0.38,subY+hS*0.38);
+      }
+
+      // ── Pinch-off marker ──
+      // Vertical line at pinchX
+      ctx.setLineDash([4,3]);
+      ctx.strokeStyle='rgba(20,180,20,0.85)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(pinchX,oxY-2);ctx.lineTo(pinchX,subY+hS*0.5);ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Arrow pointing to pinch-off tip
+      // Green label "pinched off"
+      const lblRight = (chW*(1-chFrac)) > 55;
+      const lx = lblRight ? pinchX+8 : pinchX-8;
+      ctx.fillStyle='#22aa22';ctx.font='bold 9px "Exo 2"';
+      ctx.textAlign = lblRight ? 'left' : 'right';
+      ctx.fillText('pinched off',lx, subY+hS*0.3);
+
+      // L_eff double arrow
+      if(invW>30){
+        const ay=subY+hS+10;
+        ctx.strokeStyle='rgba(0,180,220,0.8)';ctx.lineWidth=1.1;
+        ctx.beginPath();ctx.moveTo(cX+2,ay);ctx.lineTo(pinchX-2,ay);ctx.stroke();
+        [[cX+2,-1],[pinchX-2,1]].forEach(([x,d])=>{
+          ctx.beginPath();ctx.moveTo(x,ay);ctx.lineTo(x+d*5,ay-3);ctx.lineTo(x+d*5,ay+3);
+          ctx.closePath();ctx.fillStyle='rgba(0,180,220,0.8)';ctx.fill();
+        });
+        ctx.fillStyle='rgba(0,200,240,0.9)';ctx.font='bold 9px "Share Tech Mono"';ctx.textAlign='center';
+        ctx.fillText('L_eff',(cX+pinchX)/2,ay+12);
+      }
+    }
+  } else {
+    // OFF: no channel label under oxide
+    ctx.fillStyle='rgba(50,80,100,0.5)';ctx.font='9px "Exo 2"';ctx.textAlign='center';
+    if(chW>50) ctx.fillText('no channel',cX+chW/2,subY+12);
+  }
+
+  // ── VGS annotation arrow (Source to Gate, like reference) ──
+  if(chW>60){
+    const gMidX=cX+chW/2;
+    const sMidX=sX+sdW*0.5;
+    const arY=gateY-3;
+    // arrow from S to G
+    ctx.strokeStyle='rgba(220,100,40,0.75)';ctx.lineWidth=1.3;
+    ctx.beginPath();
+    ctx.moveTo(sMidX, arY);
+    ctx.bezierCurveTo(sMidX,arY-14,gMidX-20,arY-14,gMidX,arY);
+    ctx.stroke();
+    // arrowhead at G end
+    ctx.beginPath();ctx.moveTo(gMidX,arY);
+    ctx.lineTo(gMidX-7,arY-5);ctx.lineTo(gMidX-5,arY+2);ctx.closePath();
+    ctx.fillStyle='rgba(220,100,40,0.75)';ctx.fill();
+    // VGS label
+    ctx.fillStyle='rgba(220,100,40,0.9)';ctx.font='9px "Share Tech Mono"';ctx.textAlign='center';
+    ctx.fillText(`VGS=${Vg.toFixed(1)}V`,sMidX+(gMidX-sMidX)*0.5,arY-17);
+  }
+
+  // ── VGD annotation (Gate to Drain, sat region note) ──
+  if(isSat && chW>60){
+    const gMidX=cX+chW/2;
+    const dMidX=dX+sdW*0.5;
+    const arY=gateY-3;
+    ctx.strokeStyle='rgba(220,100,40,0.6)';ctx.lineWidth=1.3;
+    ctx.beginPath();
+    ctx.moveTo(gMidX,arY);
+    ctx.bezierCurveTo(gMidX,arY-14,dMidX+20,arY-14,dMidX,arY);
+    ctx.stroke();
+    ctx.beginPath();ctx.moveTo(dMidX,arY);
+    ctx.lineTo(dMidX+7,arY-5);ctx.lineTo(dMidX+5,arY+2);ctx.closePath();
+    ctx.fillStyle='rgba(220,100,40,0.6)';ctx.fill();
+    ctx.fillStyle='rgba(220,100,40,0.75)';ctx.font='8px "Share Tech Mono"';ctx.textAlign='center';
+    ctx.fillText(`VGD not > Vth`,gMidX+(dMidX-gMidX)*0.5,arY-17);
+  }
+
+  // ── Terminal wires ──────────────────────────
+  const topY=3;
+  const sMidX=sX+sdW/2, gMidX=cX+chW/2, dMidX=dX+sdW/2;
+
+  function terminal(x,col,lbl){
+    ctx.strokeStyle=col;ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(x,gateY-6);ctx.lineTo(x,topY+9);ctx.stroke();
+    ctx.beginPath();ctx.arc(x,topY+9,3.5,0,Math.PI*2);
+    ctx.strokeStyle=col;ctx.lineWidth=1.8;ctx.stroke();
+    ctx.fillStyle=col;ctx.font='9px "Share Tech Mono"';ctx.textAlign='center';
+    ctx.fillText(lbl,x,topY+2);
+  }
+  terminal(sMidX,'#55aaff','S');
+  terminal(gMidX,'#cccccc','G');
+  terminal(dMidX,'#ff8855','D');
+
+  // voltage labels below terminal circles
+  ctx.fillStyle='#55aaff';ctx.font='8px "Share Tech Mono"';ctx.textAlign='center';
+  ctx.fillText('VS=0',sMidX,topY+20);
+  ctx.fillStyle='#cccccc';
+  ctx.fillText(`VG=${Vg.toFixed(1)}`,gMidX,topY+20);
+  ctx.fillStyle='#ff8855';
+  ctx.fillText(`VD=${Vd.toFixed(1)}`,dMidX,topY+20);
+
+  // iD arrow on drain (downward)
+  if(isOn){
+    ctx.strokeStyle='#ff4422';ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(dMidX+10,topY+4);ctx.lineTo(dMidX+10,topY+15);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(dMidX+10,topY+15);
+    ctx.lineTo(dMidX+6,topY+9);ctx.lineTo(dMidX+14,topY+9);ctx.closePath();
+    ctx.fillStyle='#ff4422';ctx.fill();
+    ctx.fillStyle='#ff4422';ctx.font='bold 8px "Share Tech Mono"';ctx.textAlign='left';
+    ctx.fillText('iD',dMidX+16,topY+14);
+  }
+
+  // Ground under Source
+  ctx.strokeStyle='#55aaff';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(sMidX,subBot);ctx.lineTo(sMidX,subBot+7);ctx.stroke();
+  [13,8,4].forEach((hw,i)=>{
+    ctx.beginPath();ctx.moveTo(sMidX-hw,subBot+7+i*5);ctx.lineTo(sMidX+hw,subBot+7+i*5);ctx.stroke();
+  });
+
+  // L arrow at bottom
+  if(chW>30){
+    const ay=subBot+5;
+    ctx.strokeStyle='rgba(255,255,255,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cX+2,ay);ctx.lineTo(cX+chW-2,ay);ctx.stroke();
+    [[cX+2,-1],[cX+chW-2,1]].forEach(([x,d])=>{
+      ctx.beginPath();ctx.moveTo(x,ay);ctx.lineTo(x+d*5,ay-3);ctx.lineTo(x+d*5,ay+3);
+      ctx.closePath();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fill();
+    });
+    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='bold 10px "Share Tech Mono"';ctx.textAlign='center';
+    ctx.fillText(`L = ${L_nm} nm`,cX+chW/2,ay+13);
+  }
+
+  // Regime label bottom-right
+  ctx.textAlign='right';ctx.font='bold 9px "Share Tech Mono"';
+  if(!isOn){ctx.fillStyle='rgba(140,90,220,0.85)';ctx.fillText('▪ OFF',ML+DW-3,subBot-5);}
+  else if(!isSat){ctx.fillStyle='#39ff14';ctx.fillText('▪ LINEAR',ML+DW-3,subBot-5);}
+  else{ctx.fillStyle='#ff6b35';ctx.fillText('▪ SATURATION (Pinch-off)',ML+DW-3,subBot-5);}
+}
+
+// ═══════════════════════════════════════════════
+// Id-Vd Chart
+// ═══════════════════════════════════════════════
+function drawChart(canvas,p,Vg_op,Vd_op){
+  const CW=canvas.width, CH=canvas.height;
+  if(CW<10||CH<10) return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,CW,CH);
+
+  const ml=60,mr=20,mt=16,mb=44;
+  const pw=CW-ml-mr, ph=CH-mt-mb;
+  if(pw<30||ph<20) return;
+
+  const Vd_max=2.0;
+  const Vg_list=[0.5,0.7,0.9,1.1,1.3,1.5];
+  const colors=['#1a4d7a','#0d7eb5','#00aadd','#00d4ff','#44ffcc','#39ff14'];
+  const N=300;
+
+  // Fixed Y-axis at 0.3 µA
+  const yTop=0.6;
+
+  // BG
+  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(ml,mt,pw,ph);
+
+  // Grid
+  const nx=5, ny=6;
+  ctx.strokeStyle='rgba(20,35,65,0.95)';ctx.lineWidth=1;
+  for(let i=0;i<=nx;i++){
+    const x=ml+(i/nx)*pw;
+    ctx.beginPath();ctx.moveTo(x,mt);ctx.lineTo(x,mt+ph);ctx.stroke();
+    ctx.fillStyle='#445566';ctx.font='9px "Share Tech Mono"';ctx.textAlign='center';
+    ctx.fillText((Vd_max*i/nx).toFixed(1),x,mt+ph+13);
+  }
+  for(let i=0;i<=ny;i++){
+    const y=mt+ph-(i/ny)*ph;
+    ctx.beginPath();ctx.moveTo(ml,y);ctx.lineTo(ml+pw,y);ctx.stroke();
+    const v=yTop*i/ny;
+    ctx.fillStyle='#445566';ctx.font='9px "Share Tech Mono"';ctx.textAlign='right';
+    // smart formatting
+    ctx.fillText(v.toFixed(2),ml-5,y+3);
+  }
+
+  // Border
+  ctx.strokeStyle='rgba(80,110,160,0.6)';ctx.lineWidth=1.5;
+  ctx.strokeRect(ml,mt,pw,ph);
+
+  // Axis labels
+  ctx.fillStyle='#7a8fa8';ctx.font='11px "Exo 2"';ctx.textAlign='center';
+  ctx.fillText('Vd (V)',ml+pw/2,mt+ph+30);
+  ctx.save();ctx.translate(13,mt+ph/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText('Id (µA)',0,0);ctx.restore();
+
+  // L & Vg annotation
+  ctx.fillStyle='rgba(0,212,255,0.7)';ctx.font='9px "Share Tech Mono"';ctx.textAlign='right';
+  ctx.fillText(`L=${Math.round(p.L*1000)}nm`,ml+pw-3,mt+12);
+
+  // ── Curves ──
+  for(let ci=0;ci<Vg_list.length;ci++){
+    const vg=Vg_list[ci];
+    const isOp=Math.abs(vg-Vg_op)<0.11;
+    ctx.beginPath();
+    ctx.strokeStyle=colors[ci];
+    ctx.lineWidth=isOp?3:1.5;
+    ctx.setLineDash(isOp?[]:[5,3]);
+    let first=true;
+    for(let i=0;i<=N;i++){
+      const vd=(i/N)*Vd_max;
+      const{Id}=calcId(vg,vd,p);
+      const ua=Id*UNIT*1e6;
+      const x=ml+(vd/Vd_max)*pw;
+      const y=mt+ph-(Math.min(ua,yTop*1.01)/yTop)*ph;
+      const yc=Math.max(mt-2,Math.min(mt+ph+2,y));
+      if(first){ctx.moveTo(x,yc);first=false;}else ctx.lineTo(x,yc);
+    }
+    ctx.stroke();ctx.setLineDash([]);
+
+    // Curve label at right
+    const{Id:Il}=calcId(vg,Vd_max*0.82,p);
+    const ual=Il*UNIT*1e6;
+    const lx=ml+0.82*pw+3;
+    const ly=mt+ph-(Math.min(ual,yTop)/yTop)*ph-4;
+    ctx.fillStyle=isOp?'#ffffff':colors[ci];
+    ctx.font=`${isOp?'bold ':''}9px "Share Tech Mono"`;ctx.textAlign='left';
+    ctx.fillText(`Vg=${vg}`,lx,Math.max(mt+9,Math.min(mt+ph-3,ly)));
+  }
+
+  // ── Vg slider indicator line (vertical dashed line at Vg_op on Id-Vg projection) ──
+  // Draw a highlighted vertical "Vg cursor" band: for each Vd, show the op-point curve brighter
+  // Actually draw a bright moving curve for the exact Vg_op value
+  ctx.beginPath();
+  ctx.strokeStyle='rgba(255,255,255,0.9)';
+  ctx.lineWidth=2.5;
+  ctx.setLineDash([]);
+  let first2=true;
+  for(let i=0;i<=N;i++){
+    const vd=(i/N)*Vd_max;
+    const{Id}=calcId(Vg_op,vd,p);
+    const ua=Id*UNIT*1e6;
+    const x=ml+(vd/Vd_max)*pw;
+    const y=mt+ph-(Math.min(ua,yTop*1.01)/yTop)*ph;
+    const yc=Math.max(mt-2,Math.min(mt+ph+2,y));
+    if(first2){ctx.moveTo(x,yc);first2=false;}else ctx.lineTo(x,yc);
+  }
+  ctx.stroke();
+
+  // Vg_op label on the white curve
+  const{Id:Iop_lbl}=calcId(Vg_op,Vd_max*0.6,p);
+  const uop_lbl=Iop_lbl*UNIT*1e6;
+  const lx2=ml+0.6*pw+4;
+  const ly2=mt+ph-(Math.min(uop_lbl,yTop)/yTop)*ph-8;
+  ctx.fillStyle='#ffffff';ctx.font='bold 10px "Share Tech Mono"';ctx.textAlign='left';
+  ctx.fillText(`← Vg=${Vg_op.toFixed(2)}V`,lx2,Math.max(mt+12,Math.min(mt+ph-4,ly2)));
+
+  // ── Operating point dot ──
+  const{Id:Iop}=calcId(Vg_op,Vd_op,p);
+  const uaop=Iop*UNIT*1e6;
+  const opx=ml+(Math.min(Vd_op,Vd_max)/Vd_max)*pw;
+  const opy=mt+ph-(Math.min(uaop,yTop)/yTop)*ph;
+  ctx.beginPath();ctx.arc(opx,opy,7,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,107,53,0.25)';ctx.fill();
+  ctx.strokeStyle='#ff6b35';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(opx,opy,2.5,0,Math.PI*2);
+  ctx.fillStyle='#ff6b35';ctx.fill();
+}
+
+// ═══════════════════════════════════════════════
+// Resize / Update
+// ═══════════════════════════════════════════════
+function resize(){
+  const cw=document.getElementById('cw');
+  const gw=document.getElementById('gw');
+  const cc=document.getElementById('cc');
+  const gc=document.getElementById('gc');
+  cc.width=cw.clientWidth-28; cc.height=cw.clientHeight-18;
+  gc.width=gw.clientWidth-32; gc.height=gw.clientHeight-28;
+}
+
+function update(){
+  const p=gp();
+  const Vg=parseFloat(document.getElementById('vg').value);
+  const Vd=parseFloat(document.getElementById('vd').value);
+  document.getElementById('lVal').textContent=`${Math.round(p.L*1000)} nm`;
+
+  const{Id,regime,Vth_eff,Vdsat}=calcId(Vg,Vd,p);
+  const ua=Id*UNIT*1e6;
+
+  const badge=document.getElementById('regimeBadge');
+  if(regime==='off'){badge.textContent='OFF';badge.className='badge off';}
+  else if(regime==='linear'){badge.textContent='線性區 (Linear)';badge.className='badge linear';}
+  else{badge.textContent='飽和區 (Saturation)';badge.className='badge saturation';}
+
+  document.getElementById('idPoint').textContent=ua>=1000?`${(ua/1000).toFixed(3)} mA`:`${ua.toFixed(4)} µA`;
+  document.getElementById('vthEff').textContent=Vth_eff.toFixed(4);
+  document.getElementById('vdsat').textContent=Vdsat.toFixed(4);
+  document.getElementById('etaEff').textContent=(p.eta*L0/p.L).toFixed(4);
+  document.getElementById('lamEff').textContent=(p.lambda*L0/p.L).toFixed(4);
+
+  drawCross(document.getElementById('cc'),p,Vg,Vd);
+  drawChart(document.getElementById('gc'),p,Vg,Vd);
+}
+
+document.getElementById('sliderL').addEventListener('input',update);
+['vg','vd','vth','mu','cox','width','lambda','eta','esat'].forEach(id=>
+  document.getElementById(id).addEventListener('input',update));
+window.addEventListener('resize',()=>{resize();update();});
+
+window.addEventListener('load',()=>{resize();update();});
+</script>
+</body>
+</html>
